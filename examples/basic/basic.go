@@ -35,6 +35,11 @@ func main() {
 
 	log.WithFields(logrus.Fields{
 		"animal": "walrus",
+		"number": 6,
+	}).Debug("I see the most detail")
+
+	log.WithFields(logrus.Fields{
+		"animal": "walrus",
 		"number": 8,
 	}).Debug("Started observing beach")
 

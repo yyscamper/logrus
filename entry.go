@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -20,6 +21,7 @@ func init() {
 
 // Defines the key when adding errors using WithError.
 var ErrorKey = "error"
+var StacktraceKey = "stacktrace"
 
 // An entry is the final or intermediate Logrus logging entry. It contains all
 // the fields passed with WithField{,s}. It's finally logged when Debug, Info,
@@ -64,8 +66,17 @@ func (entry *Entry) String() (string, error) {
 }
 
 // Add an error as single field (using the key defined in ErrorKey) to the Entry.
+func (entry *Entry) WithStacktrace(err error) *Entry {
+	stack := make([]byte, 2048)
+	size := runtime.Stack(stack, false)
+	return entry.WithField(StacktraceKey, string(stack[:size]))
+}
+
+// Add an error as single field (using the key defined in ErrorKey) to the Entry.
 func (entry *Entry) WithError(err error) *Entry {
-	return entry.WithField(ErrorKey, err)
+	stack := make([]byte, 2048)
+	size := runtime.Stack(stack, false)
+	return entry.WithFields(Fields{ErrorKey: err, StacktraceKey: string(stack[:size])})
 }
 
 // Add a single field to the Entry.
@@ -125,6 +136,12 @@ func (entry Entry) log(level Level, msg string) {
 	}
 }
 
+func (entry *Entry) Trace(args ...interface{}) {
+	if entry.Logger.level() >= TraceLevel {
+		entry.log(TraceLevel, fmt.Sprint(args...))
+	}
+}
+
 func (entry *Entry) Debug(args ...interface{}) {
 	if entry.Logger.level() >= DebugLevel {
 		entry.log(DebugLevel, fmt.Sprint(args...))
@@ -173,6 +190,12 @@ func (entry *Entry) Panic(args ...interface{}) {
 
 // Entry Printf family functions
 
+func (entry *Entry) Tracef(format string, args ...interface{}) {
+	if entry.Logger.level() >= TraceLevel {
+		entry.Trace(fmt.Sprintf(format, args...))
+	}
+}
+
 func (entry *Entry) Debugf(format string, args ...interface{}) {
 	if entry.Logger.level() >= DebugLevel {
 		entry.Debug(fmt.Sprintf(format, args...))
@@ -219,6 +242,12 @@ func (entry *Entry) Panicf(format string, args ...interface{}) {
 }
 
 // Entry Println family functions
+
+func (entry *Entry) Traceln(args ...interface{}) {
+	if entry.Logger.level() >= TraceLevel {
+		entry.Trace(entry.sprintlnn(args...))
+	}
+}
 
 func (entry *Entry) Debugln(args ...interface{}) {
 	if entry.Logger.level() >= DebugLevel {

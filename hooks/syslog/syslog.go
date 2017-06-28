@@ -4,9 +4,10 @@ package logrus_syslog
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"log/syslog"
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 // SyslogHook to send logs via syslog.
@@ -43,6 +44,8 @@ func (hook *SyslogHook) Fire(entry *logrus.Entry) error {
 	case logrus.InfoLevel:
 		return hook.Writer.Info(line)
 	case logrus.DebugLevel:
+		return hook.Writer.Debug(line)
+	case logrus.TraceLevel:
 		return hook.Writer.Debug(line)
 	default:
 		return nil

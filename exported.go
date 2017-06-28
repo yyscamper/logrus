@@ -27,6 +27,13 @@ func SetFormatter(formatter Formatter) {
 	std.Formatter = formatter
 }
 
+// SetStacktraceOnError sets the standard logger level.
+func SetStacktraceOnError(enable bool) {
+	std.mu.Lock()
+	defer std.mu.Unlock()
+	std.StacktraceOnError = enable
+}
+
 // SetLevel sets the standard logger level.
 func SetLevel(level Level) {
 	std.mu.Lock()
