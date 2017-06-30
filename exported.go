@@ -46,6 +46,20 @@ func SetModuleLevel(moduleName string, level Level) {
 	std.SetModuleLevel(moduleName, level)
 }
 
+// SetModuleLevelString set the logging levels for modules in a convience way
+//
+// For example: Set module "foo" in debug level, and "bar" in error level:
+//    SetModuleLevelString("foo:debug, bar:error")
+// Set module "foo" in debug level, and "bar" in error level, and all others in info level:
+//    SetModuleLevelString("foo:debug, bar:error, *:info")
+// Set all modules to info level:
+//    SetModuleLevelString("*:info")
+// or more simple:
+//    SetModuleLevelString("info")
+func SetModuleLevelString(levelstr string) error {
+	return std.SetModuleLevelString(levelstr)
+}
+
 // ClearAllModuleLevels set the logging level for a specified module
 func ClearAllModuleLevels() {
 	std.ClearModuleLevels()

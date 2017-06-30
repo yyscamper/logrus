@@ -1,8 +1,11 @@
 package logrus
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -335,7 +338,46 @@ func (logger *Logger) Panicln(args ...interface{}) {
 }
 
 func (logger *Logger) SetModuleLevel(moduleName string, level Level) {
-	logger.ModuleLevels[moduleName] = level
+	if moduleName != DefaultModuleName {
+		logger.ModuleLevels[moduleName] = level
+	} else {
+		logger.setLevel(level)
+	}
+}
+
+func (logger *Logger) SetModuleLevelString(levelstr string) error {
+	levelstr = strings.TrimSpace(levelstr)
+	if len(levelstr) <= 0 {
+		return nil
+	}
+	if level, err := ParseLevel(levelstr); err == nil {
+		SetLevel(level)
+		return nil
+	}
+
+	regModule := regexp.MustCompile(`\s*[,;\|]\s*`)
+	regLevel := regexp.MustCompile(`\s*:\s*`)
+	modules := regModule.Split(levelstr, -1)
+	for _, mod := range modules {
+		lvs := regLevel.Split(mod, -1)
+		if len(lvs) < 2 {
+			return fmt.Errorf("invalid logging level string, missing logging level or module name for input %s", mod)
+		}
+
+		modName := strings.TrimSpace(lvs[0])
+		lvName := strings.TrimSpace(lvs[1])
+
+		if level, err := ParseLevel(lvName); err == nil {
+			if modName == "*" {
+				logger.setLevel(level)
+			} else {
+				logger.SetModuleLevel(modName, level)
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
 }
 
 func (logger *Logger) ClearModuleLevels() {
