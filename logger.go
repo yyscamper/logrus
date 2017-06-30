@@ -33,6 +33,8 @@ type Logger struct {
 	entryPool sync.Pool
 	//Automatically attach the stacktrace for WithError
 	StacktraceOnError bool
+	//Set logging level per module
+	ModuleLevels map[string]Level
 }
 
 type MutexWrap struct {
@@ -70,10 +72,11 @@ func (mw *MutexWrap) Disable() {
 // It's recommended to make this a global instance called `log`.
 func New() *Logger {
 	return &Logger{
-		Out:       os.Stderr,
-		Formatter: new(TextFormatter),
-		Hooks:     make(LevelHooks),
-		Level:     InfoLevel,
+		Out:          os.Stderr,
+		Formatter:    new(TextFormatter),
+		Hooks:        make(LevelHooks),
+		Level:        InfoLevel,
+		ModuleLevels: make(map[string]Level),
 	}
 }
 
@@ -87,6 +90,10 @@ func (logger *Logger) newEntry() *Entry {
 
 func (logger *Logger) releaseEntry(entry *Entry) {
 	logger.entryPool.Put(entry)
+}
+
+func (logger *Logger) NewModule(moduleName string) *Entry {
+	return logger.WithField(ModuleNameKey, moduleName)
 }
 
 // Adds a field to the log entry, note that it doesn't log until you call
@@ -327,6 +334,16 @@ func (logger *Logger) Panicln(args ...interface{}) {
 	}
 }
 
+func (logger *Logger) SetModuleLevel(moduleName string, level Level) {
+	logger.ModuleLevels[moduleName] = level
+}
+
+func (logger *Logger) ClearModuleLevels() {
+	for k := range logger.ModuleLevels {
+		delete(logger.ModuleLevels, k)
+	}
+}
+
 //When file is opened with appending mode, it's safe to
 //write concurrently to a file (within 4k message on Linux).
 //In these cases user can choose to disable the lock.
@@ -334,7 +351,14 @@ func (logger *Logger) SetNoLock() {
 	logger.mu.Disable()
 }
 
-func (logger *Logger) level() Level {
+//if name is specified, then return the correspoindg logging level for the specified module
+//if name is not specifed, returns the default logging level
+func (logger *Logger) level(name ...string) Level {
+	if len(name) > 0 {
+		if lv, ok := logger.ModuleLevels[name[0]]; ok {
+			return lv
+		}
+	}
 	return Level(atomic.LoadUint32((*uint32)(&logger.Level)))
 }
 

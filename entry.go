@@ -7,6 +7,12 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/yyscamper/go-spew/spew"
+)
+
+const (
+	DefaultModuleName string = ""
 )
 
 var bufferPool *sync.Pool
@@ -22,6 +28,7 @@ func init() {
 // Defines the key when adding errors using WithError.
 var ErrorKey = "error"
 var StacktraceKey = "stacktrace"
+var ModuleNameKey = "module"
 
 // An entry is the final or intermediate Logrus logging entry. It contains all
 // the fields passed with WithField{,s}. It's finally logged when Debug, Info,
@@ -137,14 +144,14 @@ func (entry Entry) log(level Level, msg string) {
 }
 
 func (entry *Entry) Trace(args ...interface{}) {
-	if entry.Logger.level() >= TraceLevel {
-		entry.log(TraceLevel, fmt.Sprint(args...))
+	if entry.matchLevel(TraceLevel) {
+		entry.log(TraceLevel, spew.Sdump(args...))
 	}
 }
 
 func (entry *Entry) Debug(args ...interface{}) {
-	if entry.Logger.level() >= DebugLevel {
-		entry.log(DebugLevel, fmt.Sprint(args...))
+	if entry.matchLevel(DebugLevel) {
+		entry.log(DebugLevel, spew.Sdump(args...))
 	}
 }
 
@@ -153,14 +160,14 @@ func (entry *Entry) Print(args ...interface{}) {
 }
 
 func (entry *Entry) Info(args ...interface{}) {
-	if entry.Logger.level() >= InfoLevel {
-		entry.log(InfoLevel, fmt.Sprint(args...))
+	if entry.matchLevel(InfoLevel) {
+		entry.log(InfoLevel, spew.Sdump(args...))
 	}
 }
 
 func (entry *Entry) Warn(args ...interface{}) {
-	if entry.Logger.level() >= WarnLevel {
-		entry.log(WarnLevel, fmt.Sprint(args...))
+	if entry.matchLevel(WarnLevel) {
+		entry.log(WarnLevel, spew.Sdump(args...))
 	}
 }
 
@@ -169,41 +176,41 @@ func (entry *Entry) Warning(args ...interface{}) {
 }
 
 func (entry *Entry) Error(args ...interface{}) {
-	if entry.Logger.level() >= ErrorLevel {
-		entry.log(ErrorLevel, fmt.Sprint(args...))
+	if entry.matchLevel(ErrorLevel) {
+		entry.log(ErrorLevel, spew.Sdump(args...))
 	}
 }
 
 func (entry *Entry) Fatal(args ...interface{}) {
-	if entry.Logger.level() >= FatalLevel {
-		entry.log(FatalLevel, fmt.Sprint(args...))
+	if entry.matchLevel(FatalLevel) {
+		entry.log(FatalLevel, spew.Sdump(args...))
 	}
 	Exit(1)
 }
 
 func (entry *Entry) Panic(args ...interface{}) {
-	if entry.Logger.level() >= PanicLevel {
-		entry.log(PanicLevel, fmt.Sprint(args...))
+	if entry.matchLevel(PanicLevel) {
+		entry.log(PanicLevel, spew.Sdump(args...))
 	}
-	panic(fmt.Sprint(args...))
+	panic(spew.Sdump(args...))
 }
 
 // Entry Printf family functions
 
 func (entry *Entry) Tracef(format string, args ...interface{}) {
-	if entry.Logger.level() >= TraceLevel {
-		entry.Trace(fmt.Sprintf(format, args...))
+	if entry.matchLevel(TraceLevel) {
+		entry.Trace(spew.Sprintf(format, args...))
 	}
 }
 
 func (entry *Entry) Debugf(format string, args ...interface{}) {
-	if entry.Logger.level() >= DebugLevel {
+	if entry.matchLevel(DebugLevel) {
 		entry.Debug(fmt.Sprintf(format, args...))
 	}
 }
 
 func (entry *Entry) Infof(format string, args ...interface{}) {
-	if entry.Logger.level() >= InfoLevel {
+	if entry.matchLevel(InfoLevel) {
 		entry.Info(fmt.Sprintf(format, args...))
 	}
 }
@@ -213,7 +220,7 @@ func (entry *Entry) Printf(format string, args ...interface{}) {
 }
 
 func (entry *Entry) Warnf(format string, args ...interface{}) {
-	if entry.Logger.level() >= WarnLevel {
+	if entry.matchLevel(WarnLevel) {
 		entry.Warn(fmt.Sprintf(format, args...))
 	}
 }
@@ -223,20 +230,20 @@ func (entry *Entry) Warningf(format string, args ...interface{}) {
 }
 
 func (entry *Entry) Errorf(format string, args ...interface{}) {
-	if entry.Logger.level() >= ErrorLevel {
+	if entry.matchLevel(ErrorLevel) {
 		entry.Error(fmt.Sprintf(format, args...))
 	}
 }
 
 func (entry *Entry) Fatalf(format string, args ...interface{}) {
-	if entry.Logger.level() >= FatalLevel {
+	if entry.matchLevel(FatalLevel) {
 		entry.Fatal(fmt.Sprintf(format, args...))
 	}
 	Exit(1)
 }
 
 func (entry *Entry) Panicf(format string, args ...interface{}) {
-	if entry.Logger.level() >= PanicLevel {
+	if entry.matchLevel(PanicLevel) {
 		entry.Panic(fmt.Sprintf(format, args...))
 	}
 }
@@ -244,19 +251,19 @@ func (entry *Entry) Panicf(format string, args ...interface{}) {
 // Entry Println family functions
 
 func (entry *Entry) Traceln(args ...interface{}) {
-	if entry.Logger.level() >= TraceLevel {
+	if entry.matchLevel(TraceLevel) {
 		entry.Trace(entry.sprintlnn(args...))
 	}
 }
 
 func (entry *Entry) Debugln(args ...interface{}) {
-	if entry.Logger.level() >= DebugLevel {
+	if entry.matchLevel(DebugLevel) {
 		entry.Debug(entry.sprintlnn(args...))
 	}
 }
 
 func (entry *Entry) Infoln(args ...interface{}) {
-	if entry.Logger.level() >= InfoLevel {
+	if entry.matchLevel(InfoLevel) {
 		entry.Info(entry.sprintlnn(args...))
 	}
 }
@@ -266,7 +273,7 @@ func (entry *Entry) Println(args ...interface{}) {
 }
 
 func (entry *Entry) Warnln(args ...interface{}) {
-	if entry.Logger.level() >= WarnLevel {
+	if entry.matchLevel(WarnLevel) {
 		entry.Warn(entry.sprintlnn(args...))
 	}
 }
@@ -276,20 +283,20 @@ func (entry *Entry) Warningln(args ...interface{}) {
 }
 
 func (entry *Entry) Errorln(args ...interface{}) {
-	if entry.Logger.level() >= ErrorLevel {
+	if entry.matchLevel(ErrorLevel) {
 		entry.Error(entry.sprintlnn(args...))
 	}
 }
 
 func (entry *Entry) Fatalln(args ...interface{}) {
-	if entry.Logger.level() >= FatalLevel {
+	if entry.matchLevel(FatalLevel) {
 		entry.Fatal(entry.sprintlnn(args...))
 	}
 	Exit(1)
 }
 
 func (entry *Entry) Panicln(args ...interface{}) {
-	if entry.Logger.level() >= PanicLevel {
+	if entry.matchLevel(PanicLevel) {
 		entry.Panic(entry.sprintlnn(args...))
 	}
 }
@@ -299,6 +306,17 @@ func (entry *Entry) Panicln(args ...interface{}) {
 // their type. Instead of vendoring the Sprintln implementation to spare a
 // string allocation, we do the simplest thing.
 func (entry *Entry) sprintlnn(args ...interface{}) string {
-	msg := fmt.Sprintln(args...)
+	buf := &bytes.Buffer{}
+	spew.Fdump(buf, args...)
+	buf.WriteString("\n")
+	msg := buf.String()
 	return msg[:len(msg)-1]
+}
+
+func (entry *Entry) matchLevel(lv Level) bool {
+	moduleName := DefaultModuleName
+	if name, ok := entry.Data[ModuleNameKey]; ok {
+		moduleName = name.(string)
+	}
+	return entry.Logger.level(moduleName) >= lv
 }

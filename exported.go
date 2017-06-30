@@ -41,6 +41,21 @@ func SetLevel(level Level) {
 	std.setLevel(level)
 }
 
+// SetModuleLevel set the logging level for a specified module
+func SetModuleLevel(moduleName string, level Level) {
+	std.SetModuleLevel(moduleName, level)
+}
+
+// ClearAllModuleLevels set the logging level for a specified module
+func ClearAllModuleLevels() {
+	std.ClearModuleLevels()
+}
+
+// GetAllModuleLevels returns the table of the logging level setting for all modules
+func GetAllModuleLevels() map[string]Level {
+	return std.ModuleLevels
+}
+
 // GetLevel returns the standard logger level.
 func GetLevel() Level {
 	std.mu.Lock()
@@ -53,6 +68,11 @@ func AddHook(hook Hook) {
 	std.mu.Lock()
 	defer std.mu.Unlock()
 	std.Hooks.Add(hook)
+}
+
+// NewModule creates a named entry from the standard logger
+func NewModule(moduleName string) *Entry {
+	return WithField(ModuleNameKey, moduleName)
 }
 
 // WithError creates an entry from the standard logger and adds an error to it, using the value defined in ErrorKey as key.
