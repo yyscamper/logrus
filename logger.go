@@ -35,7 +35,7 @@ type Logger struct {
 	// Reusable empty entry
 	entryPool sync.Pool
 	//Automatically attach the stacktrace for WithError
-	StacktraceOnError bool
+	StackOnError bool
 	//Set logging level per module
 	ModuleLevels map[string]Level
 }

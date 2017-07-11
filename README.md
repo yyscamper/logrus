@@ -40,11 +40,23 @@ logrus.WithField("test", 123).Tracef("name=%s", "yyscamper")
 
 ## Stacktrace
 ```go
-logrus.WithStacktrace().Debug("something happens")
+logrus.WithStack().Debug("something happens")
 
 //Set to automatically collect stacktrace if has error
-logrus.SetStacktraceOnError(true)
+logrus.SetStackOnError(true)
 logrus.WithError(err).Error("file is not found")
+```
+
+## Advance Error Wrapper
+The error wrapper [yyscamper/errors](https://github.com/yyscamper/errors) can record the stacktrace when the error happens (not when logging happens), and also the error wrapper can attach some additional fileds information,
+These stacktrace and fields information will be automatically extracted by logrus
+```go
+import "github.com/yyscamper/errors"
+import "github.com/yyscamper/logrus"
+
+err := errors.New("some error").WithFiled("path", "/home/me/foo.txt")
+logrus.WithError(err).Error("failed to do something")
+
 ```
 
 ## PrettyTextFormatter
@@ -54,4 +66,17 @@ Base on `go-spew`, I created a new formatter for loggrus `PrettyTextFormatter`, 
 
 ```go
 logrus.SetFormatter(&log.PrettyTextFormatter{})
+```
+
+## .With
+A sugar wrapper for `logrus.WithFields`, as I think this is more simple than `logrus.WithFields(logrus.Fields{...})`
+```go
+logrus.With("key1", val1, "key2", val2, "key3", val3)
+
+//Compared with following complex one:
+logrus.WithFields(logrus.Fields{
+    "key1": val1,
+    "key2": val2,
+    "key3", val3,
+})
 ```
