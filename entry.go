@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"runtime"
 	"sync"
 	"time"
 
+	"github.com/yyscamper/errors"
 	"github.com/yyscamper/go-spew/spew"
 )
 
@@ -72,18 +72,37 @@ func (entry *Entry) String() (string, error) {
 	return str, nil
 }
 
-// Add an error as single field (using the key defined in ErrorKey) to the Entry.
-func (entry *Entry) WithStacktrace(err error) *Entry {
-	stack := make([]byte, 2048)
-	size := runtime.Stack(stack, false)
-	return entry.WithField(StacktraceKey, string(stack[:size]))
+func (entry *Entry) withStack(trace string) *Entry {
+	return entry.WithField(StacktraceKey, trace)
+}
+
+// Add current stacktrace to the Entry
+func (entry *Entry) WithStack() *Entry {
+	return entry.withStack(errors.Stack(1))
 }
 
 // Add an error as single field (using the key defined in ErrorKey) to the Entry.
 func (entry *Entry) WithError(err error) *Entry {
-	stack := make([]byte, 2048)
-	size := runtime.Stack(stack, false)
-	return entry.WithFields(Fields{ErrorKey: err, StacktraceKey: string(stack[:size])})
+	switch realErr := err.(type) {
+	case *errors.Error:
+		fields := Fields{
+			ErrorKey:      err,
+			StacktraceKey: realErr.Stack(),
+		}
+		if realErr.Name != "" {
+			fields[ModuleNameKey] = realErr.Name
+		}
+		for k, v := range realErr.Fields {
+			fields[k] = v
+		}
+		return entry.WithFields(fields)
+	default:
+		fields := Fields{
+			ErrorKey:      err,
+			StacktraceKey: errors.Stack(2),
+		}
+		return entry.WithFields(fields)
+	}
 }
 
 // Add a single field to the Entry.
@@ -101,6 +120,36 @@ func (entry *Entry) WithFields(fields Fields) *Entry {
 		data[k] = v
 	}
 	return &Entry{Logger: entry.Logger, Data: data}
+}
+
+func stringify(val interface{}) string {
+	if k, ok := val.(string); ok {
+		return k
+	}
+	return fmt.Sprintf("%v", val)
+}
+
+// Add one or multiple field to the Entry.
+func (entry *Entry) With(key string, value interface{}, extras ...interface{}) *Entry {
+	fields := Fields{}
+	fields[key] = value
+
+	n := len(extras)
+	if n%2 != 0 {
+		n--
+	}
+	for i := 0; i < n; i += 2 {
+		fields[stringify(extras[i])] = extras[i+1]
+	}
+	//Auto attaches a value if user forgets the last value
+	if n < len(extras) {
+		fields[stringify(extras[n])] = nil
+	}
+	return entry.WithFields(fields)
+}
+
+func (entry *Entry) WithModule(moduleName string) *Entry {
+	return entry.WithField(ModuleNameKey, moduleName)
 }
 
 // This function is not declared with a pointer value because otherwise

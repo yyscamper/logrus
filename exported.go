@@ -91,7 +91,7 @@ func NewModule(moduleName string) *Entry {
 
 // WithError creates an entry from the standard logger and adds an error to it, using the value defined in ErrorKey as key.
 func WithError(err error) *Entry {
-	return std.WithField(ErrorKey, err)
+	return std.WithError(err)
 }
 
 // WithField creates an entry from the standard logger and adds a field to
