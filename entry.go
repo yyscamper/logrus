@@ -364,8 +364,23 @@ func (entry *Entry) sprintlnn(args ...interface{}) string {
 
 func (entry *Entry) matchLevel(lv Level) bool {
 	moduleName := DefaultModuleName
-	if name, ok := entry.Data[ModuleNameKey]; ok {
-		moduleName = name.(string)
+	if entry.Data != nil {
+		if name, ok := entry.Data[ModuleNameKey]; ok {
+			moduleName = name.(string)
+		}
 	}
 	return entry.Logger.level(moduleName) >= lv
+}
+
+func (entry *Entry) NewErrorGenerator() *errors.Generator {
+	name, ok := entry.Data[ModuleNameKey].(string)
+	if !ok {
+		name = DefaultModuleName
+	}
+
+	errFields := errors.Fields{}
+	for k, v := range entry.Data {
+		errFields[k] = v
+	}
+	return errors.NewGenerator(name).WithFields(errFields)
 }
